@@ -2,15 +2,15 @@ const canvas = document.getElementById("game")
 const ctx = canvas.getContext("2d")
 
 Util = {
-    createImage: (src)=>{
+    createImage: (src) => {
         let res = new Image()
         res.src = src
         return res
     },
-    setCursor: (type)=>{
+    setCursor: (type) => {
         document.body.style.cursor = type
     },
-    drawText: (text, maxWidth, fontSize, font, color, x, y, lineHeight=8) => {
+    drawText: (text, maxWidth, fontSize, font, color, x, y, lineHeight = 8) => {
         ctx.font = fontSize + "px " + font
         ctx.textAlign = "start";
         ctx.textBaseline = "top";
@@ -19,20 +19,20 @@ Util = {
         let curLine = ""
         let cur_y = y
         text = text.split("")
-        for (let word of text){
-            if (ctx.measureText(curLine + " " + word).width >= maxWidth){
+        for (let word of text) {
+            if (ctx.measureText(curLine + " " + word).width >= maxWidth) {
                 ctx.fillText(curLine, x, cur_y)
                 cur_y += fontSize + lineHeight
                 curLine = word
-            }else{
+            } else {
                 curLine += word
             }
         }
-        if (curLine){
+        if (curLine) {
             ctx.fillText(curLine, x, cur_y)
         }
     },
-    estimateDimensions: (text, width, fontSize, font, lineHeight=8)=>{
+    estimateDimensions: (text, width, fontSize, font, lineHeight = 8) => {
         ctx.font = fontSize + "px " + font
         ctx.textAlign = "start";
         ctx.textBaseline = "top";
@@ -42,24 +42,24 @@ Util = {
 
         let curLine = ""
         text = text.split("")
-        for (let word of text){
-            if (ctx.measureText(curLine + " " + word).width >= width){
+        for (let word of text) {
+            if (ctx.measureText(curLine + " " + word).width >= width) {
                 res_y += fontSize + lineHeight
                 res_w = Math.max(res_w, ctx.measureText(curLine).width)
                 curLine = word
-            }else{
+            } else {
                 curLine += word
             }
         }
-        if (curLine){
+        if (curLine) {
             res_y += fontSize
             res_w = Math.max(res_w, ctx.measureText(curLine).width)
-        }else{
+        } else {
             res_y -= lineHeight
         }
         return [Math.ceil(res_w), res_y]
     },
-    reset: ()=>{
+    reset: () => {
         window.HoverEvents = new Map()
         window.ClickEvents = new Map()
         window.Blocks = new Map()
@@ -67,13 +67,13 @@ Util = {
 }
 
 // Fake jQuery
-$ = (id)=>{
+$ = (id) => {
     return Blocks.get(id)
 }
 
 Images = {
     BSD: Util.createImage("./static/BSD_Map.svg"),
-    marker: fetch("./static/marker.txt").then(x=>x.text()).then(x=>Images.marker = x),
+    marker: fetch("./static/marker.txt").then(x => x.text()).then(x => Images.marker = x),
     person: Util.createImage("./static/person.svg"),
     car: Util.createImage("./static/car.svg"),
     outside: Util.createImage("./static/outside_cropped_cropped.jpeg")
@@ -86,6 +86,7 @@ Blocks = new Map()
 
 Const = {
     amount: 0.5,
+    normalTransform: [1, 0, 0, 1, 0, 0],
     schools: {
         "Medina Elementary School": {
             coords: [80, 175],
@@ -213,7 +214,7 @@ Const = {
     }
 }
 
-class Marker{
+class Marker {
     constructor(school, name) {
         this.x = school.coords[0] - 23 / 2
         this.y = school.coords[1] - 33
@@ -223,15 +224,26 @@ class Marker{
         this.tooltip = ""
 
         HoverEvents.set(
-            (x, y)=>{return ctx.isPointInPath(this.path, x - this.x, y - this.y)},
-            [()=>{this.onHover(this)}, ()=>{this.onUnHover(this)}]
+            (x, y) => {
+                return ctx.isPointInPath(this.path, x - this.x, y - this.y)
+            },
+            [() => {
+                this.onHover(this)
+            }, () => {
+                this.onUnHover(this)
+            }]
         )
         ClickEvents.set(
-            (x, y)=>{return ctx.isPointInPath(this.path, x - this.x, y - this.y)},
-            ()=>{this.onClick(this)}
+            (x, y) => {
+                return ctx.isPointInPath(this.path, x - this.x, y - this.y)
+            },
+            () => {
+                this.onClick(this)
+            }
         )
     }
-    draw(){
+
+    draw() {
         ctx.beginPath()
         ctx.fillStyle = Const.Image[this.type]
         this.path = new Path2D(Images.marker)
@@ -240,34 +252,37 @@ class Marker{
         ctx.fill(this.path)
         ctx.translate(-this.x, -this.y)
     }
-    onHover(){
+
+    onHover() {
         this.type = "highlighted"
-        if (!this.tooltip){
+        if (!this.tooltip) {
             let rect = canvas.getBoundingClientRect()
             this.tooltip = document.createElement("DIV")
             this.tooltip.classList.add("tooltip")
             this.tooltip.innerHTML = this.name
-            this.tooltip.style.left = rect.left + this.x + 23/2 + "px"
+            this.tooltip.style.left = rect.left + this.x + 23 / 2 + "px"
             this.tooltip.style.top = rect.top + this.y + 33 + "px"
             document.body.appendChild(this.tooltip)
         }
     }
-    onUnHover(){
+
+    onUnHover() {
         this.type = this.school.type
         if (this.tooltip) {
             this.tooltip.remove()
             this.tooltip = ""
         }
     }
-    onClick(){
-        if (this.name !== $("character").name){
+
+    onClick() {
+        if (this.name !== $("character").name) {
             Const.character.goto(...this.school.coords, this.school, this.name)
         }
     }
 }
 
-class Person{
-    constructor(x, y, school, name, size=40, speed=20) {
+class Person {
+    constructor(x, y, school, name, size = 40, speed = 20) {
         this.size = size
         this.x = x
         this.y = y
@@ -280,9 +295,10 @@ class Person{
         this.ratio_x = null
         this.ratio_y = null
     }
-    draw(){
-        if (this.goto_x && this.goto_y && this.ratio_x && this.ratio_y){
-            if (Math.abs(this.x - this.goto_x) < 2 && Math.abs(this.y - this.goto_y) < 2){
+
+    draw() {
+        if (this.goto_x && this.goto_y && this.ratio_x && this.ratio_y) {
+            if (Math.abs(this.x - this.goto_x) < 2 && Math.abs(this.y - this.goto_y) < 2) {
                 this.x = this.goto_x
                 this.y = this.goto_y
                 this.goto_x = null
@@ -290,16 +306,17 @@ class Person{
                 this.ratio_x = null
                 this.ratio_y = null
                 $("EnterExit_Building").disabled = false
-            }else{
+            } else {
                 this.x += this.ratio_x
                 this.y += this.ratio_y
             }
             ctx.drawImage(Images.car, this.x - this.size / 2, this.y - this.size, this.size, this.size)
-        }else{
+        } else {
             ctx.drawImage(Images.person, this.x - this.size / 2, this.y - this.size, this.size, this.size)
         }
     }
-    goto(x, y, school, name){
+
+    goto(x, y, school, name) {
         $("EnterExit_Building").disabled = true
         this.goto_x = x
         this.goto_y = y
@@ -310,8 +327,8 @@ class Person{
     }
 }
 
-class Button{
-    constructor(text, x, y, textColor, color, maxWidth, fontSize, callback, padding_h = 10, padding_v = 10, radii=4) {
+class Button {
+    constructor(text, x, y, textColor, color, maxWidth, fontSize, callback, transform = [1, 0, 0, 1, 0, 0], padding_h = 10, padding_v = 10, radii = 4) {
         this.text = text
         this.color = color
         this.textColor = textColor
@@ -320,54 +337,73 @@ class Button{
         this.fontSize = fontSize
         let dimensions = Util.estimateDimensions(this.text, this.width - padding_h * 2, fontSize, "Roboto")
         this.width = dimensions[0] + padding_h * 2
-        if (maxWidth < this.width){
+        if (maxWidth < this.width) {
             dimensions = Util.estimateDimensions(this.text, maxWidth - padding_h * 2, fontSize, "Roboto")
             this.width = dimensions[0] + padding_h * 2
         }
-        this.height = dimensions[1] + 2  * padding_v
+        this.height = dimensions[1] + 2 * padding_v
         this.radii = radii
         this.padding_h = padding_h
         this.padding_v = padding_v
         this.opacity = 1
         this.onClick = callback
         this.disabled = false
-
+        this.transform = transform
         HoverEvents.set(
-            (x, y)=>{return ctx.isPointInPath(this.path, x, y)},
-            [()=>{this.onHover(this)}, ()=>{this.onUnHover(this)}]
+            (x, y)=>{return this.transformIsPointInPath(this, x, y)},
+            [() => {
+                this.onHover(this)
+            }, () => {
+                this.onUnHover(this)
+            }]
         )
         ClickEvents.set(
-            (x, y)=>{return ctx.isPointInPath(this.path, x, y)},
+            (x, y)=>{return this.transformIsPointInPath(this, x, y)},
             callback
         )
     }
-    draw(){
+
+    transformIsPointInPath(me, x, y){ // quick workaround
+        ctx.save()
+        ctx.transform(...me.transform)
+        let res = ctx.isPointInPath(me.path, x, y)
+        ctx.restore()
+        return res
+    }
+
+    draw() {
         ctx.beginPath()
-        ctx.globalAlpha = this.disabled ? 0.5: this.opacity
+        ctx.save()
+        ctx.globalAlpha = this.disabled ? 0.5 : this.opacity
         ctx.fillStyle = this.color
         this.path = new Path2D()
+        ctx.transform(...this.transform)
         this.path.roundRect(this.x, this.y, this.width, this.height, this.radii)
         ctx.fill(this.path)
         ctx.fillStyle = this.textColor
         Util.drawText(this.text, this.width, this.fontSize, "Roboto", this.textColor, this.x + this.padding_h, this.y + this.padding_v)
         ctx.globalAlpha = 1
+        ctx.restore()
         ctx.closePath()
     }
-    onHover(){
+
+    onHover() {
         this.opacity = 0.7
     }
-    onUnHover(){
+
+    onUnHover() {
         this.opacity = 1
     }
 }
 
-class PublicApproval{
-    constructor(amount=null) {
-        if (amount){
+class PublicApproval {
+    constructor(amount = null) {
+        if (amount) {
             Const.amount = amount
         }
     }
-    draw(){
+
+    draw() {
         this.amount = Math.min(1, Const.amount)
         ctx.beginPath()
         ctx.fillStyle = "#ffffff"
@@ -380,37 +416,38 @@ class PublicApproval{
         ctx.closePath()
         ctx.fillStyle = "#ff6e6e"
         let round;
-        if (this.amount - 1 === 0){
+        if (this.amount - 1 === 0) {
             round = [100, 100, 100, 100]
-        }else{
+        } else {
             round = [0, 0, 100, 100]
         }
-        ctx.roundRect(15, 385 + (1-this.amount) * 100, 20, 100 - (1-this.amount) * 100, round)
+        ctx.roundRect(15, 385 + (1 - this.amount) * 100, 20, 100 - (1 - this.amount) * 100, round)
         ctx.fill()
     }
 }
 
-function mapMain(){
+function init__map() {
     // Reset
     Util.reset()
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    for (let school in Const.schools){
+    for (let school in Const.schools) {
         Blocks.set("MARKER_" + school, new Marker(Const.schools[school], school))
     }
     Const.character = new Person(...Const.schools["Bellevue School District Offices"].coords, Const.schools["Bellevue School District Offices"], "Bellevue School District Offices")
     Blocks.set("character", Const.character)
     Blocks.set("EnterExit_Building", new Button(
         "Enter Building", 50, canvas.height - 45, "#ffffff", "#000000", 500, 18,
-        ()=>{
-            mapDesk()
+        () => {
+            init__desk()
             clearInterval(Const.loop)
-            Const.loop = setInterval(mapDeskDraw, 1000/60)
+            Const.loop = setInterval(draw__desk, 1000 / 60)
         }
     ))
     Blocks.set("Public_Approval", new PublicApproval())
 }
-function mapMainDraw(){
+
+function draw__map() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
     let gradient = ctx.createLinearGradient(0, 0, 0, 170);
@@ -421,74 +458,92 @@ function mapMainDraw(){
 
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     ctx.drawImage(Images.BSD, 20, 20, 850 - 20, 495 - 20)
-    for (let [id, block] of Blocks.entries()){
+    for (let [id, block] of Blocks.entries()) {
         block.draw()
     }
 }
 
-function mapDesk(){
+function init__desk() {
     Util.reset()
     Blocks.set("EnterExit_Building", new Button(
         "Exit Building", 50, canvas.height - 45, "#ffffff", "#000000", 500, 18,
-        ()=>{
-            mapMain()
+        () => {
+            init__map()
             clearInterval(Const.loop)
-            Const.loop = setInterval(mapMainDraw, 1000/60)
+            Const.loop = setInterval(draw__map, 1000 / 60)
         }
     ))
     Blocks.set("Public_Approval", new PublicApproval())
 }
 
-function mapDeskDraw(){
+function draw__desk() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
     // Background
-    ctx.fillStyle = "#964B00"
+    ctx.fillStyle = "#c7a336"
     ctx.fillRect(0, 150, canvas.width, canvas.height - 150)
 
     ctx.strokeStyle = "#8d8d8d"
-    ctx.rect(100, -10, canvas.width - 200, 130)
+    ctx.lineWidth = 10
+    ctx.strokeRect(100, -10, canvas.width - 200, 130)
 
     ctx.globalAlpha = 0.8
     ctx.drawImage(Images.outside, 100, 0, 680, 120)
     ctx.globalAlpha = 1
 
+    ctx.beginPath()
+    ctx.lineWidth = 10
     ctx.moveTo(440, 120)
     ctx.lineTo(440, 0)
     ctx.moveTo(100, 0)
-    ctx.lineTo(680, 0)
+    ctx.lineTo(780, 0)
     ctx.stroke()
+    ctx.closePath()
 
-    for (let [id, block] of Blocks.entries()){
+    // iPad
+    ctx.beginPath()
+    ctx.save()
+    ctx.fillStyle = "#fff"
+    ctx.strokeStyle = "#000"
+    ctx.lineWidth = 15
+    ctx.transform(1, 0, -0.25, 1, 0, 0)
+    ctx.roundRect(650, 180, 250, 280, 4)
+    ctx.fill()
+    ctx.stroke()
+    ctx.restore()
+    ctx.closePath()
+
+
+    for (let [id, block] of Blocks.entries()) {
         block.draw()
     }
 }
 
 
-window.onload = ()=>{
-    mapMain()
-    Const.loop = setInterval(mapMainDraw, 1000/60)
+window.onload = () => {
+    init__desk()
+    Const.loop = setInterval(draw__desk, 1000 / 60)
 }
 
-canvas.onmousemove = (e)=>{
+canvas.onmousemove = (e) => {
     let rect = canvas.getBoundingClientRect()
     let x = e.clientX - rect.left
     let y = e.clientY - rect.top
-    for (let [check, invoke] of HoverEvents){
-        if (check(x, y)){
+    for (let [check, invoke] of HoverEvents) {
+        if (check(x, y)) {
             invoke[0]()
-        }else{
+        } else {
             invoke[1]()
         }
     }
 }
 
-canvas.onclick = (e)=>{
+canvas.onclick = (e) => {
     let rect = canvas.getBoundingClientRect()
     let x = e.clientX - rect.left
     let y = e.clientY - rect.top
-    for (let [check, invoke] of ClickEvents){
-        if (check(x, y)){
+    for (let [check, invoke] of ClickEvents) {
+        if (check(x, y)) {
             invoke()
         }
     }
